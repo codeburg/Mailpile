@@ -34,7 +34,6 @@ class TestCommands(MailPileUnittest):
 
     def test_add_mailbox_already_in_pile(self):
         res = self.mp.add("tests")
-        res = self.mp.add("tests")
         self.assertEqual(res.as_dict()["result"], True)
 
     def test_add_mailbox_no_such_directory(self):
@@ -68,6 +67,14 @@ class TestCommands(MailPileUnittest):
         self.assertEqual(len(res.result), 1)
         self.assertGreater(res.as_text(), 0)
 
+    def test_autodiscover_crypto_action(self):
+        res = self.mp.discover_crypto_policy()
+        self.assertEqual(res.as_dict()["message"], 'discover_crypto_policy')
+        self.assertEqual({}, res.as_dict()['result'])
+
+    def test_crypto_policy_action(self):
+        res = self.mp.crypto_policy("foobar")
+        self.assertEqual(res.as_dict()["message"], 'crypto_policy')
 
 class TestCommandResult(MailPileUnittest):
     def test_command_result_as_dict(self):

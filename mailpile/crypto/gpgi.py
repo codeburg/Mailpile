@@ -17,6 +17,7 @@ from mailpile.crypto.mime import MimeSigningWrapper, MimeEncryptingWrapper
 
 
 DEFAULT_SERVER = "pool.sks-keyservers.net"
+GNUPG_HOMEDIR = None  # None=use what gpg uses
 
 openpgp_trust = {"-": _("Trust not calculated"),
                  "o": _("Unknown trust"),
@@ -190,6 +191,8 @@ class GnuPG:
         self.needed_fds = ["stdin", "stdout", "stderr", "status"]
         self.errors = []
         self.statuscallbacks = {}
+        global GNUPG_HOMEDIR
+        self.homedir = GNUPG_HOMEDIR
 
     def default_errorhandler(self, *error):
         if error != "":
@@ -365,6 +368,9 @@ u:Smari McCarthy <smari@immi.is>::scESC:\\nsub:u:4096:1:13E0BB42176BA0AC:\
         args.insert(1, "--verbose")
         args.insert(1, "--batch")
         args.insert(1, "--enable-progress-filter")
+
+        if self.homedir:
+            args.insert(1, "--homedir=%s" % self.homedir)
 
         try:
             for fd in self.fds.keys():
@@ -750,8 +756,8 @@ u:Smari McCarthy <smari@immi.is>::scESC:\\nsub:u:4096:1:13E0BB42176BA0AC:\
         for x in retvals[1]["status"]:
             if x[0] == "IMPORTED":
                 res["imported"].append({
-                    "keyid": keyid, 
-                    "fingerprint": x[1], 
+                    "keyid": keyid,
+                    "fingerprint": x[1],
                     "username": x[2]
                 })
             elif x[0] == "IMPORT_OK":
@@ -764,7 +770,7 @@ u:Smari McCarthy <smari@immi.is>::scESC:\\nsub:u:4096:1:13E0BB42176BA0AC:\
                     "16": "contains private key",
                 }
                 res["updated"].append({
-                    "keyid": keyid, 
+                    "keyid": keyid,
                     "details": int(x[1]),
                     "details_text": reasons[x[1]],
                     "fingerprint": x[2],
@@ -806,7 +812,7 @@ u:Smari McCarthy <smari@immi.is>::scESC:\\nsub:u:4096:1:13E0BB42176BA0AC:\
 
     def search_key(self, term, keyserver=DEFAULT_SERVER):
         retvals = self.run(['--keyserver', keyserver,
-                            '--search-key', term], 
+                            '--search-key', term],
                             callbacks={"stdout": lambda x: x})[1]["stdout"][0]
         results = {}
         lines = [x.split(":") for x in retvals.strip().split("\n")]
@@ -816,14 +822,14 @@ u:Smari McCarthy <smari@immi.is>::scESC:\\nsub:u:4096:1:13E0BB42176BA0AC:\
                 pass
             elif line[0] == "pub":
                 curpub = line[1]
-                results[curpub] = {"created": line[4], 
-                                   "keytype": openpgp_algorithms[int(line[2])], 
-                                   "keysize": line[3], 
+                results[curpub] = {"created": line[4],
+                                   "keytype": openpgp_algorithms[int(line[2])],
+                                   "keysize": line[3],
                                    "uids": []}
             elif line[0] == "uid":
                 email, name, comment = parse_uid(line[1])
-                results[curpub]["uids"].append({"name": name, 
-                                                "email": email, 
+                results[curpub]["uids"].append({"name": name,
+                                                "email": email,
                                                 "comment": comment})
         return results
 
@@ -899,6 +905,12 @@ class OpenPGPMimeEncryptingWrapper(MimeEncryptingWrapper):
 
     def get_keys(self, who):
         return GetKeys(self.crypto, self.config, who)
+
+
+def change_gnupg_home(path, passphrase):
+    global GNUPG_HOMEDIR, GNUPG_PASSPHRASE
+    GNUPG_HOMEDIR = path
+    GNUPG_PASSPHRASE = passphrase
 
 
 if __name__ == "__main__":
