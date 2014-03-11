@@ -24,8 +24,9 @@ class AutoDiscoverCryptoActionTest(CryptoPolicyBaseTest):
         self._add_vcard('Signer', 'signer@test.local')
         self._add_vcard('Encrypter', 'encrypter@test.local')
 
-        self.mp.discover_crypto_policy()
+        res = self.mp.discover_crypto_policy()
 
+        self.assertEqual({'signer@test.local', 'encrypter@test.local'}, res.as_dict()['result'])
         signer_vcard = self.config.vcards.get_vcard('signer@test.local')
         encrypter_vcard = self.config.vcards.get_vcard('encrypter@test.local')
         self.assertEqual('sign', signer_vcard.get(VCARD_CRYPTO_POLICY).value)

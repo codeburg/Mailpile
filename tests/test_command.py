@@ -70,11 +70,12 @@ class TestCommands(MailPileUnittest):
     def test_autodiscover_crypto_action(self):
         res = self.mp.discover_crypto_policy()
         self.assertEqual(res.as_dict()["message"], 'discover_crypto_policy')
-        self.assertEqual({}, res.as_dict()['result'])
+        self.assertEqual(set(), res.as_dict()['result'])
 
     def test_crypto_policy_action(self):
         res = self.mp.crypto_policy("foobar")
         self.assertEqual(res.as_dict()["message"], 'crypto_policy')
+
 
 class TestCommandResult(MailPileUnittest):
     def test_command_result_as_dict(self):

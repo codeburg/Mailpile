@@ -1,3 +1,4 @@
+import sys
 import mailpile.plugins
 from mailpile.vcard import VCardLine
 from mailpile.commands import Command
@@ -7,7 +8,8 @@ from mailpile.mailutils import Email
 
 VCARD_CRYPTO_POLICY = 'X-CRYPTO-POLICY'
 
-class DiscoverCryptoAction(Command):
+
+class CryptoPolicyBaseAction(Command):
     def _get_keywords(self, e):
         idx = self._idx()
         mid = e.msg_mid()
@@ -55,7 +57,7 @@ class DiscoverCryptoAction(Command):
                 vcard.add(VCardLine(name=VCARD_CRYPTO_POLICY, value=policy))
 
 
-class AutoDiscoverCryptoPolicy(DiscoverCryptoAction):
+class AutoDiscoverCryptoPolicy(CryptoPolicyBaseAction):
     SYNOPSIS = (None, 'discover_crypto_policy', None, None)
     ORDER = ('AutoDiscover', 0)
 
@@ -65,24 +67,28 @@ class AutoDiscoverCryptoPolicy(DiscoverCryptoAction):
             if vcard:
                 self._update_vcard(vcard, policy)
                 self.session.ui.mark('policy for %s will be %s' % (email, policy))
+                return True
             else:
                 self.session.ui.mark('skipped setting policy for %s to policy,  no vcard entry found' % email)
+        return False
 
     def _update_crypto_state(self, email):
         policy = self._find_policy(email)
 
-        self._set_crypto_policy(email, policy)
+        return self._set_crypto_policy(email, policy)
 
     def command(self):
         idx = self._idx()
 
+        updated = set()
         for email in idx.EMAIL_IDS:
-            self._update_crypto_state(email)
+            if self._update_crypto_state(email):
+                updated.add(email)
 
-        return {}
+        return updated
 
 
-class UpdateCryptoPolicyForUser(DiscoverCryptoAction):
+class UpdateCryptoPolicyForUser(CryptoPolicyBaseAction):
     SYNOPSIS = (None, 'crypto_policy/set', 'crypto_policy/set', '<email addresses> none|sign|encrypt|default')
     ORDER = ('Internals', 9)
     HTTP_CALLABLE = ('POST',)
@@ -104,7 +110,7 @@ class UpdateCryptoPolicyForUser(DiscoverCryptoAction):
             return self._error('No vcard for email %s!' % email)
 
 
-class CryptoPolicyForUser(DiscoverCryptoAction):
+class CryptoPolicyForUser(CryptoPolicyBaseAction):
     """ foobar """
     SYNOPSIS = (None, 'crypto_policy', 'crypto_policy', '[<emailaddresses>]')
     ORDER = ('Internals', 9)
