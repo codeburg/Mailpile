@@ -1,6 +1,8 @@
 from mailpile.vcard import SimpleVCard, VCardLine
 from tests import MailPileUnittest
 
+VCARD_CRYPTO_POLICY = 'X-CRYPTO-POLICY'
+
 
 class CryptoPolicyBaseTest(MailPileUnittest):
     def setUp(self):
@@ -26,8 +28,8 @@ class AutoDiscoverCryptoActionTest(CryptoPolicyBaseTest):
 
         signer_vcard = self.config.vcards.get_vcard('signer@test.local')
         encrypter_vcard = self.config.vcards.get_vcard('encrypter@test.local')
-        self.assertEqual('sign', signer_vcard.get('X-CRYPTO-POLICY').value)
-        self.assertEqual('encrypt', encrypter_vcard.get('X-CRYPTO-POLICY').value)
+        self.assertEqual('sign', signer_vcard.get(VCARD_CRYPTO_POLICY).value)
+        self.assertEqual('encrypt', encrypter_vcard.get(VCARD_CRYPTO_POLICY).value)
 
 
 class UpdateCryptoPolicyForUserTest(CryptoPolicyBaseTest):
@@ -55,14 +57,14 @@ class UpdateCryptoPolicyForUserTest(CryptoPolicyBaseTest):
         vcard = self._add_vcard('Test', 'test@test.local')
         for policy in ['none', 'sign', 'encrypt']:
             self.mp.crypto_policy_set('test@test.local', policy)
-            self.assertEqual(policy, vcard.get('X-CRYPTO-POLICY').value)
+            self.assertEqual(policy, vcard.get(VCARD_CRYPTO_POLICY).value)
 
     def test_default_policy_removes_vcard_line(self):
         vcard = self._add_vcard('Test', 'test@test.local')
-        vcard.add(VCardLine(name='X-CRYPTO-POLICY', value='sign'))
+        vcard.add(VCardLine(name=VCARD_CRYPTO_POLICY, value='sign'))
 
         self.mp.crypto_policy_set('test@test.local', 'default')
-        self.assertEqual(0, len(vcard.get_all('X-CRYPTO-POLICY')))
+        self.assertEqual(0, len(vcard.get_all(VCARD_CRYPTO_POLICY)))
 
 
 class CryptoPolicyForUserTest(CryptoPolicyBaseTest):
@@ -88,7 +90,7 @@ class CryptoPolicyForUserTest(CryptoPolicyBaseTest):
 
     def test_vcard_overrides_mail_history(self):
         vcard = self._add_vcard('Encrypter', 'encrypter@test.local')
-        vcard.add(VCardLine(name='X-CRYPTO-POLICY', value='sign'))
+        vcard.add(VCardLine(name=VCARD_CRYPTO_POLICY, value='sign'))
 
         res = self.mp.crypto_policy('encrypter@test.local').as_dict()
 

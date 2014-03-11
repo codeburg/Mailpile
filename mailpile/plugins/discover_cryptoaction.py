@@ -5,6 +5,7 @@ from mailpile.mailutils import Email
 
 ##[ Commands ]################################################################
 
+VCARD_CRYPTO_POLICY = 'X-CRYPTO-POLICY'
 
 class DiscoverCryptoAction(Command):
     def _get_keywords(self, e):
@@ -45,13 +46,13 @@ class DiscoverCryptoAction(Command):
 
     def _update_vcard(self, vcard, policy):
         if 'default' == policy:
-            for line in vcard.get_all('X-CRYPTO-POLICY'):
+            for line in vcard.get_all(VCARD_CRYPTO_POLICY):
                 vcard.remove(line.line_id)
         else:
-            if len(vcard.get_all('X-CRYPTO-POLICY')) > 0:
-                vcard.get('X-CRYPTO-POLICY').value = policy
+            if len(vcard.get_all(VCARD_CRYPTO_POLICY)) > 0:
+                vcard.get(VCARD_CRYPTO_POLICY).value = policy
             else:
-                vcard.add(VCardLine(name='X-CRYPTO-POLICY', value=policy))
+                vcard.add(VCardLine(name=VCARD_CRYPTO_POLICY, value=policy))
 
 
 class AutoDiscoverCryptoPolicy(DiscoverCryptoAction):
@@ -126,8 +127,8 @@ class CryptoPolicyForUser(DiscoverCryptoAction):
 
     def _vcard_policy(self, email):
         vcard = self.session.config.vcards.get_vcard(email)
-        if vcard and len(vcard.get_all('X-CRYPTO-POLICY')) > 0:
-            return vcard.get('X-CRYPTO-POLICY').value
+        if vcard and len(vcard.get_all(VCARD_CRYPTO_POLICY)) > 0:
+            return vcard.get(VCARD_CRYPTO_POLICY).value
         else:
             return None
 
