@@ -1,7 +1,7 @@
 from mailpile.vcard import SimpleVCard, VCardLine
 from tests import MailPileUnittest
 
-VCARD_CRYPTO_POLICY = 'X-CRYPTO-POLICY'
+VCARD_CRYPTO_POLICY = 'X-MAILPILE-CRYPTO-POLICY'
 
 
 class CryptoPolicyBaseTest(MailPileUnittest):

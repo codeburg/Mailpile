@@ -1,4 +1,3 @@
-import sys
 import mailpile.plugins
 from mailpile.vcard import VCardLine
 from mailpile.commands import Command
@@ -6,7 +5,7 @@ from mailpile.mailutils import Email
 
 ##[ Commands ]################################################################
 
-VCARD_CRYPTO_POLICY = 'X-CRYPTO-POLICY'
+VCARD_CRYPTO_POLICY = 'X-MAILPILE-CRYPTO-POLICY'
 
 
 class CryptoPolicyBaseAction(Command):
@@ -92,22 +91,32 @@ class UpdateCryptoPolicyForUser(CryptoPolicyBaseAction):
     SYNOPSIS = (None, 'crypto_policy/set', 'crypto_policy/set', '<email addresses> none|sign|encrypt|default')
     ORDER = ('Internals', 9)
     HTTP_CALLABLE = ('POST',)
+    HTTP_QUERY_VARS = {'email': 'contact email', 'policy': 'new policy'}
 
     def command(self):
-        if len(self.args) != 2:
-            return self._error('Please provide email address and policy!')
+        email, policy = self._parse_args()
 
-        email = self.args[0]
-        policy = self.args[1]
         if policy not in {'none', 'sign', 'encrypt', 'default'}:
             return self._error('Policy has to be one of none|sign|encrypt|default')
 
         vcard = self.session.config.vcards.get_vcard(email)
         if vcard:
             self._update_vcard(vcard, policy)
-            return {vcard}
+            return {'email': email, 'policy:': policy }
         else:
             return self._error('No vcard for email %s!' % email)
+
+    def _parse_args(self):
+        if self.data:
+            email = unicode(self.data['email'][0])
+            policy = unicode(self.data['policy'][0])
+        else:
+            if len(self.args) != 2:
+                return self._error('Please provide email address and policy!')
+
+            email = self.args[0]
+            policy = self.args[1]
+        return email, policy
 
 
 class CryptoPolicyForUser(CryptoPolicyBaseAction):
