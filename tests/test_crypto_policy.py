@@ -47,7 +47,8 @@ class UpdateCryptoPolicyForUserTest(CryptoPolicyBaseTest):
         for policy in ['anything', 'else']:
             res = self.mp.crypto_policy_set('test@test.local', policy).as_dict()
             self.assertEqual('error', res['status'])
-            self.assertEqual('crypto_policy/set error: Policy has to be one of none|sign|encrypt|default', res['message'])
+            self.assertEqual('crypto_policy/set error: Policy has to be one of none|sign|encrypt|default',
+                             res['message'])
 
     def test_vcard_has_to_exist(self):
         res = self.mp.crypto_policy_set('test@test.local', 'sign').as_dict()

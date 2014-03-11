@@ -3,12 +3,14 @@ from mailpile.vcard import VCardLine
 from mailpile.commands import Command
 from mailpile.mailutils import Email
 
-##[ Commands ]################################################################
 
 VCARD_CRYPTO_POLICY = 'X-MAILPILE-CRYPTO-POLICY'
 
+##[ Commands ]################################################################
 
 class CryptoPolicyBaseAction(Command):
+    """ Base class for crypto policy commands """
+
     def _get_keywords(self, e):
         idx = self._idx()
         mid = e.msg_mid()
@@ -57,6 +59,7 @@ class CryptoPolicyBaseAction(Command):
 
 
 class AutoDiscoverCryptoPolicy(CryptoPolicyBaseAction):
+    """ Auto discovers crypto policy for all known contacts """
     SYNOPSIS = (None, 'discover_crypto_policy', None, None)
     ORDER = ('AutoDiscover', 0)
 
@@ -88,7 +91,8 @@ class AutoDiscoverCryptoPolicy(CryptoPolicyBaseAction):
 
 
 class UpdateCryptoPolicyForUser(CryptoPolicyBaseAction):
-    SYNOPSIS = (None, 'crypto_policy/set', 'crypto_policy/set', '<email addresses> none|sign|encrypt|default')
+    """ Update crypto policy for a single user """
+    SYNOPSIS = (None, 'crypto_policy/set', 'crypto_policy/set', '<email address> none|sign|encrypt|default')
     ORDER = ('Internals', 9)
     HTTP_CALLABLE = ('POST',)
     HTTP_QUERY_VARS = {'email': 'contact email', 'policy': 'new policy'}
@@ -102,7 +106,7 @@ class UpdateCryptoPolicyForUser(CryptoPolicyBaseAction):
         vcard = self.session.config.vcards.get_vcard(email)
         if vcard:
             self._update_vcard(vcard, policy)
-            return {'email': email, 'policy:': policy }
+            return {'email': email, 'policy:': policy}
         else:
             return self._error('No vcard for email %s!' % email)
 
@@ -120,25 +124,22 @@ class UpdateCryptoPolicyForUser(CryptoPolicyBaseAction):
 
 
 class CryptoPolicyForUser(CryptoPolicyBaseAction):
-    """ foobar """
+    """ Retrieve the current crypto policy for a user """
     SYNOPSIS = (None, 'crypto_policy', 'crypto_policy', '[<emailaddresses>]')
     ORDER = ('Internals', 9)
     HTTP_CALLABLE = ('GET',)
 
     def command(self):
-        try:
-            if len(self.args) != 1:
-                return self._error('Please provide a single email address!')
+        if len(self.args) != 1:
+            return self._error('Please provide a single email address!')
 
-            email = self.args[0]
+        email = self.args[0]
 
-            policy_from_vcard = self._vcard_policy(email)
-            if policy_from_vcard:
-                return policy_from_vcard
-            else:
-                return self._find_policy(email)
-        except:
-            return {}
+        policy_from_vcard = self._vcard_policy(email)
+        if policy_from_vcard:
+            return policy_from_vcard
+        else:
+            return self._find_policy(email)
 
     def _vcard_policy(self, email):
         vcard = self.session.config.vcards.get_vcard(email)
