@@ -46,7 +46,7 @@ class SeleniumScreenshotOnExceptionAspecter(type):
 
               Args:
                 *args: Variable argument list of original method
-                **kw: Arbitray keyword arguments of the original method
+                **kw: Arbitrary keyword arguments of the original method
 
               Returns:
                 The result of the original method call
@@ -122,8 +122,11 @@ class MailpileSeleniumTest(MailPileUnittest):
     @classmethod
     def _stop_selenium_driver(cls):
         if cls.DRIVER:
-            cls.DRIVER.quit()
-            cls.DRIVER = None
+            try:
+                cls.DRIVER.quit()
+                cls.DRIVER = None
+            except WebDriverException:
+                pass
 
     @classmethod
     def setUpClass(cls):
@@ -132,10 +135,11 @@ class MailpileSeleniumTest(MailPileUnittest):
 
     @classmethod
     def _stop_web_server(cls):
-        try:
+            mp = get_shared_mailpile()
+            config = mp._config
+            config.http_worker = None
             cls.http_worker.quit()
-        except WebDriverException:
-            pass
+            cls.http_worker = None
 
     @classmethod
     def tearDownClass(cls):
@@ -168,9 +172,12 @@ class MailpileSeleniumTest(MailPileUnittest):
         input_field = self.driver.find_element_by_name(field)
         input_field.send_keys(text)
 
-
     def assert_link_with_text(self, text):
         try:
             self.driver.find_element_by_link_text(text)
         except NoSuchElementException:
             raise AssertionError
+
+    def click_button_with_id(self, button_id):
+        btn = self.driver.find_element_by_id(button_id)
+        btn.click()
