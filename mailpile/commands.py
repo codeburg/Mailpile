@@ -1098,6 +1098,8 @@ class AddMailboxes(Command):
                 fn = os.path.abspath(fn)
                 if raw_fn in existing or fn in existing:
                     session.ui.warning('Already in the pile: %s' % raw_fn)
+                elif raw_fn.startswith("leap://"):
+                    adding.append(raw_fn)
                 elif raw_fn.startswith("imap://"):
                     adding.append(raw_fn)
                 elif os.path.exists(fn):

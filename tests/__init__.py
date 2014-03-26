@@ -65,6 +65,8 @@ def get_shared_mailpile():
 
     MP = mailpile.Mailpile(workdir=workdir, ui=SilentInteraction)
     MP._session.config.plugins.load('demos')
+    MP._session.config.plugins.load('soledad')
+    MP._session.config.plugins.process_manifests()
 
     _initialize_mailpile_for_testing(MP, test_data)
     return MP

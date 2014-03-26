@@ -10,6 +10,7 @@ from mailpile.util import *
 import mailpile.commands
 import mailpile.defaults
 import mailpile.vcard
+from mailpile.mailboxes import register as register_mailbox
 
 
 ##[ Plugin discovery ]########################################################
@@ -209,6 +210,12 @@ class PluginManager(object):
                                   command.get('url', cls.SYNOPSIS[2]),
                                   cls.SYNOPSIS_ARGS or cls.SYNOPSIS[3]])
             self.register_commands(cls)
+
+        # Register mailboxes
+        for mailbox in manifest_path('mailboxes'):
+            cls = self._get_class(full_name, mailbox['class'])
+            priority = int(mailbox['priority'])
+            register_mailbox(priority, cls)
 
     def _process_manifest_pass_two(self, full_name,
                                    manifest=None, plugin_path=None):

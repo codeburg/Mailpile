@@ -1,0 +1,52 @@
+{
+    "name": "soledad",
+    "author": "Folker Bernitt <folker-bernitt-github@gmx.de>",
+
+    "code": {
+        "python": ["."],
+
+        "javascript": [],
+
+        "css": []
+    },
+
+    "config": {
+    },
+
+    "mailboxes": [
+        {
+            "class": "MailpileMailbox",
+            "priority": "50"
+
+        }
+    ],
+    "commands": [
+        {
+            "class": "soledad.SoledadLogin",
+            "url": "soledadlogin",
+            "name": "soledadlogin"
+        }
+    ],
+    "contacts": {
+        "importers": [],
+        "exporters": [],
+        "context": []
+    },
+    "periodic_jobs": {
+    },
+    "keyword_extractors": [
+    ],
+    "search_terms": [
+    ],
+    "filters": {
+        "pre": [],
+        "post": []
+    },
+    "threads": [
+    ],
+
+    "activities": [],
+    "display_modes": [],
+    "display_actions": [],
+    "selection_actions": []
+}
