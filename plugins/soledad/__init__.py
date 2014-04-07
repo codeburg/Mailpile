@@ -1,3 +1,4 @@
+import atexit
 from mailbox import Mailbox
 import re
 from threading import Thread
@@ -13,6 +14,10 @@ from mailpile.mailboxes import UnorderedPicklable
 from plugins.soledad.leap_srp import LeapSecureRemotePassword
 from plugins.soledad.nicknym import NickNym
 from plugins.soledad.soledad import SoledadSession
+
+
+REACTOR_THREAD = None
+LEAP_SESSIONS = {}
 
 
 class LeapClientConfig(object):
@@ -104,8 +109,7 @@ class LeapSession(object):
             self.start_background_jobs()
 
     def __enter__(self):
-        if self.fetcher_thread is None:
-            self.start_background_jobs()
+        self.start_background_jobs()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -136,15 +140,10 @@ class LeapSession(object):
                                 self.leap_config.fetch_interval_in_s, self.leap_config.email())
 
     def start_background_jobs(self):
-        self.fetcher_thread = Thread(target=reactor.run, args=(False,))
-        self.fetcher_thread.daemon = True
-        self.fetcher_thread.start()
-        self.incoming_mail_fetcher.start_loop()
+        reactor.callFromThread(self.incoming_mail_fetcher.start_loop)
 
     def stop_background_jobs(self):
-        self.incoming_mail_fetcher.stop()
-        self.fetcher_thread = None
-        reactor.stop()
+        reactor.callFromThread(self.incoming_mail_fetcher.stop)
 
 
 class LeapMailbox(Mailbox):
@@ -156,7 +155,7 @@ class LeapMailbox(Mailbox):
             self.mailbox_name = mailbox_name
 
             self.leap_config = LeapClientConfig(server_name, username, password, password, verify_ssl=verify_ssl)
-            self.leap_session = LeapSession(self.leap_config)
+            self.leap_session = LeapSessionFactory.get_session_for(self.leap_config)
             self.mbx = self.leap_session.account.getMailbox(mailbox_name)
         except:
             traceback.print_exc(file=sys.stdout)
@@ -248,5 +247,46 @@ class MailpileMailbox(UnorderedPicklable(LeapMailbox)):
     def get_msg_ptr(self, mboxid, toc_id):
         return '%s%s' % (mboxid, quote(toc_id))
 
+
+class LeapSessionFactory(object):
+
+
+    @classmethod
+    def get_session_for(cls, leap_config):
+        """
+        LeapClientConfig
+        """
+        global LEAP_SESSIONS
+        session_name = "%s:%s" % (leap_config.server_name, leap_config.user_name)
+        if session_name not in LEAP_SESSIONS:
+            LEAP_SESSIONS[session_name] = LeapSession(leap_config)
+        return LEAP_SESSIONS[session_name]
+
 #mailpile.mailboxes.register(50, MailpileMailbox)
+
+
+def start_reactor():
+    global REACTOR_THREAD
+    REACTOR_THREAD = Thread(target=reactor.run, args=(False,))
+    REACTOR_THREAD.start()
+
+
+def stop_reactor_on_exit():
+    reactor.callFromThread(reactor.stop)
+    global REACTOR_THREAD
+    REACTOR_THREAD = None
+
+
+def stop_sessions_on_exit():
+    global LEAP_SESSIONS
+    for session in LEAP_SESSIONS.values():
+        session.close()
+
+
+def cleanup_on_exit():
+    stop_sessions_on_exit()
+    stop_reactor_on_exit()
+
+start_reactor()
+atexit.register(cleanup_on_exit)
 

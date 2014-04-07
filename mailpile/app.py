@@ -131,7 +131,7 @@ def Main(args):
         config.stop_workers()
         if config.index:
             config.index.save_changes()
-
+        sys.exitfunc() #force shutdown of twisted reactor
 
 if __name__ == "__main__":
     Main(sys.argv[1:])
