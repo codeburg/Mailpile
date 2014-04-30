@@ -11,6 +11,7 @@ from mailpile.util import *
 import mailpile.commands
 import mailpile.defaults
 import mailpile.vcard
+from mailpile.mailboxes import register as register_mailbox
 
 
 ##[ Plugin discovery ]########################################################
@@ -148,7 +149,7 @@ class PluginManager(object):
                         self._import(full_name, dirname)
                         continue
                     elif filename.endswith('.py'):
-                        subname = filename[:-3].replace('/', '.')
+                        subname = filename[:-3].replace('/', '.').split('.')[-1]
                         # FIXME: Is this a good idea?
                         if full_name.endswith('.'+subname):
                             self._import(full_name, path)
@@ -161,6 +162,7 @@ class PluginManager(object):
             except KeyboardInterrupt:
                 raise
             except:
+                traceback.print_exc(file=sys.stderr)
                 print 'FIXME: Loading %s failed, tell user!' % full_name
                 return
 
@@ -169,6 +171,7 @@ class PluginManager(object):
             if process_manifest:
                 self._process_manifest_pass_one(*spec)
                 self._process_manifest_pass_two(*spec)
+                self._process_startup_hooks(*spec)
         else:
             print 'What what what?? %s' % plugin_name
             return self
@@ -184,10 +187,26 @@ class PluginManager(object):
             self.loading_plugin = None
             self.loading_builtin = False
 
+    def process_shutdown_hooks(self):
+        for plugin_name in self.DISCOVERED.keys():
+            try:
+                package = 'mailpile.plugins.%s' % plugin_name
+                _, manifest = self.DISCOVERED[plugin_name]
+
+                if sys.modules.has_key(package):
+                    module = sys.modules[package]
+                    for method_name in self._mf_path(manifest, 'lifecycle', 'shutdown'):
+                        method = getattr(module, method_name)
+                        method(self.config)
+            except:
+                # ignore exceptions here as mailpile is going to shut down
+                traceback.print_exc(file=sys.stderr)
+
     def process_manifests(self):
         failed = []
         for process in (self._process_manifest_pass_one,
-                        self._process_manifest_pass_two):
+                        self._process_manifest_pass_two,
+                        self._process_startup_hooks):
             for spec in self.manifests:
                 try:
                     if spec[0] not in failed:
@@ -246,6 +265,13 @@ class PluginManager(object):
                                   cls.SYNOPSIS_ARGS or cls.SYNOPSIS[3]])
 
             self.register_commands(cls)
+
+        # Register mailboxes
+        package = str(full_name)
+        for mailbox in manifest_path('mailboxes'):
+            cls = self._get_class(package, mailbox['class'])
+            priority = int(mailbox['priority'])
+            register_mailbox(priority, cls)
 
     def _process_manifest_pass_two(self, full_name,
                                    manifest=None, plugin_path=None):
@@ -353,6 +379,18 @@ class PluginManager(object):
                             hook['javascript_events'][event] = 'new_%s.%s' \
                                 % (full_name, call)
                 self.register_ui_element(ui_type, **hook)
+
+    def _process_startup_hooks(self, package,
+                               manifest=None, plugin_path=None):
+        if not manifest:
+            return
+
+        manifest_path = lambda *p: self._mf_path(manifest, *p)
+
+        module = sys.modules[package]
+        for method_name in manifest_path('lifecycle', 'startup'):
+            method = getattr(module, method_name)
+            method(self.config)
 
     def _compat_check(self, strict=True):
         if ((strict and (not self.loading_plugin and not self.builtin)) or
